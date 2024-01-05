@@ -1,23 +1,24 @@
 import env from "./util/validateEnv";
-import { Pool } from 'pg';
-import app from './app';
+import app from "./app";
 
-const pool = new Pool({
-  user: env.DB_USER,
-  host: env.DB_HOST,
-  database: env.DB_NAME,
-  password: env.DB_PASSWORD,
-  port: Number(env.DB_PORT)
+const pg = require("../../knex/knex")({
+  client: "pg",
+  connection: {
+    host: env.DB_HOST,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
+    database: env.DB_NAME,
+    port: Number(env.DB_PORT),
+  },
+  searchPath: ["../../knex", "public"],
 });
 
 (async () => {
-  const client = await pool.connect();
+  const client = await pg.pool.acquire();
 
   try {
-    const { rows } = await client.query('SELECT current_user');
-    const currentUser = rows[0]['current_user'];
-
-    console.log(`Connected to database as ${currentUser}`);
+    const { rows: users } = await client.query("SELECT * FROM users");
+    console.log(`Connected to database ${env.DB_NAME}`);
 
     app.listen(env.PORT, () => {
       console.log(`Server listening on port ${env.PORT}`);
@@ -27,4 +28,4 @@ const pool = new Pool({
   } finally {
     client.release();
   }
-})()
+})();
